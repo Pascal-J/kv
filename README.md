@@ -69,7 +69,7 @@ pD 'if numbers mixed with strings, values are upgraded to boxes'
 
   output from kvtest run:
   
-  ┌──────┬───────────────────┐
+┌──────┬───────────────────┐
 │`descF│┌─────────────────┐│
 │`nums ││┌───────────┬──┐ ││
 │      │││`sorted    │_1│ ││
