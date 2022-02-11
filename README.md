@@ -67,7 +67,7 @@ pD 'if numbers mixed with strings, values are upgraded to boxes'
 'deep delete dic`misc`fds from `dic (masterdict over) d' pD  'dic` misc `fds fd 'kvdeld 'dic' kvbulk < d
 
 
-  output from kvtest run:
+  output from kvtest run: (in edit mode looks ok)
   
 ┌──────┬───────────────────┐
 │`descF│┌─────────────────┐│
