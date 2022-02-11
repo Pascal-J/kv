@@ -1,6 +1,8 @@
 # kv
 dictionary for J.  inverted table implemetation auto upgrades from native to boxed data including nested dictionaries.
 
+#use raw mode for readability
+
 intended for coinsert 'kv' into any other locale.  (should be) safe for coinsert_z_ 'kv' (base needs extra coinsert 'z' call)
 unique key implied access even when non-unique keys permitted.
 create(bulk), add, del, update/set all have versions to allow/avoid duplicates.  1 suffix permits duplicates
@@ -67,7 +69,7 @@ pD 'if numbers mixed with strings, values are upgraded to boxes'
 'deep delete dic`misc`fds from `dic (masterdict over) d' pD  'dic` misc `fds fd 'kvdeld 'dic' kvbulk < d
 
 
-  output from kvtest run: (in edit mode looks ok)
+  output from kvtest run: (in raw/edit mode looks ok)
   
 ┌──────┬───────────────────┐
 │`descF│┌─────────────────┐│
