@@ -24,31 +24,48 @@ deep operations are supported, where typical kv right arguments (set add) will w
   kvtest code:
   
   pD_z_ =: (1!:2&2) : (] [ (1!:2&2)@:(,&<))  
-myattr =: tosym 'sorted unique foreignkey foreignval'
+ myattr =: tosym 'sorted unique foreignkey foreignval'
+
 pD d=: ('nums' kvbulk < 'field2 field3' kvbulk > 1 ; 0 1 0 0)   kvadd  ' descF' kvf 'descF field2' kvbulk 2 $ < myattr kvbulk  _1 0 0 0
+
 'set on empty dict.  using gerund dsL call' pD 'dicts1 dicts2' kvbulk ,. (< kvEMPTY) kvset~ each ';'&cut`cut kvdsL each ('asdf`v' ; '2nd dict key with embedded spaces ` v2')
+
 'transform numeric array with a symbol list into a dictionary ']&pD myattr kvbulk 'nums ` field2' kvd d
+
 'dictionary to values' pD ,@kvvals myattr kvbulk 'nums ` field2' kvd d
 
  d =: ('strs' kvbulk < cut kvdsL 'str1 str2 str3`g asdf xcvb')  kvset d
-NB. 'manual deep update of strs`str1`ggg
+ 
  ((< 'str1 `ggg ' cut kvsetL 'strs' kv d) kvbulk~ 'strs') kvset d
-NB. ]&pD ((< 'str1 `ggg ' cut kvsetL 'strs' kv d) kvbulk~ 'strs')  d kvset~ 'strs' kvbulk 
+
 'multidict' ]&pD d kvset~ kvbulk&.>(<@)/(>@)(>@)  ( <'strs'),(tosym' str1 fds'),&< 'gg',:'fds'
 
 'simple dsL add of deep misc`fields`values' ]&pD d =: 'misc ` str1 fds ` gg fds ' cut kvsetL d
+
 'deep get strs ` str1 str2' pD 'strs ` str1 str2' kvd  d
+
 'use `misc vals to deep set strs'  ]&pD (kvsetd~ 'strs' (kvbulk <) 'misc'&kv )  d
+
 'subkey access str1 str2 for all if all dicts with kv"1' pD  ,/ 'str1 str2' kv"1 (G0 kv ]) d
+
 'subkey access str2 str1  with <@kv"1 and clean for empties' pD  a: -.~ standardnull each 'str2 str1' <@(kv"1) (G0 kv ]) d
+
 'subkey filter str2 str1  with <@kvf"1 returns list of dictionaries)' pD  ('str2 str1' kvf"1 G0 kv ]) d
+
 'subkey filter str2 str1  with <@kvf"1 adding back keys' pD  (,@G0 kvbulk 'str2 str1' kvf"1 G0 kv ]) d
+
 pD 'empty dictionary is 2$a:, but a filtered empty dictionary retains its original value shape'
+
 pD 'if numbers mixed with strings, values are upgraded to boxes'
+
 'add 2 numeric keys to all (last filtered) dictionaries with dsl ". kvsetL"1' pD 'a b ` 3 4' ". kvsetL"1 ( 'str2 str1' kvf"1 G0 kv ]) d
+
 'make a mistake adding duplicate key' pD d =: ('misc' kvbulk1 123) kvadd1 d
+
 'undo mistake... restore dict by deleting last key' pD d=: 'misc' kvdel d
- 'deep delete dic`misc`fds from `dic (masterdict over) d' pD  'dic` misc `fds fd 'kvdeld 'dic' kvbulk < d
+
+'deep delete dic`misc`fds from `dic (masterdict over) d' pD  'dic` misc `fds fd 'kvdeld 'dic' kvbulk < d
+
 
   output from kvtest run:
   
