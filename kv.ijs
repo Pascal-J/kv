@@ -1,4 +1,4 @@
-coclass 'kv'
+ccoclass 'kv'
 assertC =: 2 : '] [ v (13!:8^:((0 e. ])`(12"_))) u'
 lr_z_ =: 3 : '5!:5 < ''y'''
 NB. utilities to clean/modify/process data
@@ -76,8 +76,9 @@ kvi =: { L:_1 NB. filter by index  G0@kvi retrieves keys, if x is computed from 
 kvdi =: ] kvi~ [ -.~ i.@#@G0  NB. del by index
 NB.x are keys boxed or ' '&cut formatted string. kv y has items removed that match keys x.
 kvdel =:  ] kvdi~ G0 i: ,.@tosym@[  NB. if kv is dirty (not unique), del will undo last duplicate add
+NB. deep del matches kvd x format below: last key in list operates at deepest point in path.  result rolled up into path described by previous keys.
 kvdeld =: ] ([ kvsetd~ (linearize each)@}:@]  kvbulk&.>(<@)/(>@)(>@)@:(, <@<) >@{:@] kvdel [ kvd~ }:@]) (,.@tosym@dltb each @:('`'&cut)(linearize@) :: (,.@tosym each@](linearize@) )@[)
-NB. deep del matches kvd x format below:
+
 NB. gets values by keys in x from kv y.  if any x not found, then omit from result. if no x found return i.0
 kv =: (G1 {~ G0 (#@[ -.~ i:) ,.@tosym@[)(linearize@)((> :: ])@)NB. if values are all atomic, then returns atom or list of atoms. BUGf: if items are all unpadded chars then will concatenate them.
 NB. filters kv y by keys in x
@@ -115,9 +116,6 @@ kvO =: 1 : 'm =. kvuniquify m label_. (((G1 m) {~  (# G0 m) -.~ (G0  m)&i:)@:,.@
 coclass 'kvtest'
 coinsert 'kv'
 pD_z_ =: (1!:2&2) : (] [ (1!:2&2)@:(,&<)) 
-NB.pDr =: pD@:('    ' , ":)"1@:":
-
-NB.AmbiD =: 1 : 'u [ ''    '' pDr@, u lrX'
 myattr =: tosym 'sorted unique foreignkey foreignval'
 pD d=: ('nums' kvbulk < 'field2 field3' kvbulk > 1 ; 0 1 0 0)   kvadd  ' descF' kvf 'descF field2' kvbulk 2 $ < myattr kvbulk  _1 0 0 0
 'set on empty dict.  using gerund dsL call' pD 'dicts1 dicts2' kvbulk ,. (< kvEMPTY) kvset~ each ';'&cut`cut kvdsL each ('asdf`v' ; '2nd dict key with embedded spaces ` v2')
@@ -127,7 +125,6 @@ pD d=: ('nums' kvbulk < 'field2 field3' kvbulk > 1 ; 0 1 0 0)   kvadd  ' descF' 
  d =: ('strs' kvbulk < cut kvdsL 'str1 str2 str3`g asdf xcvb')  kvset d
 NB. 'manual deep update of strs`str1`ggg
  ((< 'str1 `ggg ' cut kvsetL 'strs' kv d) kvbulk~ 'strs') kvset d
-NB. ]&pD ((< 'str1 `ggg ' cut kvsetL 'strs' kv d) kvbulk~ 'strs')  d kvset~ 'strs' kvbulk 
 'multidict' ]&pD d kvset~ kvbulk&.>(<@)/(>@)(>@)  ( <'strs'),(tosym' str1 fds'),&< 'gg',:'fds'
 
 'simple dsL add of deep misc`fields`values' ]&pD d =: 'misc ` str1 fds ` gg fds ' cut kvsetL d
@@ -146,7 +143,7 @@ pD 'if numbers mixed with strings, values are upgraded to boxes'
 
 NB. x keys in range of 0 to y. numeric symbols associated with same numeric value.
 bench =: 4 : 0 
-'create ?.x$y keys/vals ignoring duplicates' pD timespacex 'a =. (kvbulk1~ ":) ? x$y'
+'create ? x$y keys/vals ignoring duplicates' pD timespacex 'a =. (kvbulk1~ ":) ? x$y'
 'uniquify on last step' pD timespacex 'kvuniquify a'
 '30 keys' pD k =. ": ? 30 $ y
 'uniquify and optimize' pD timespacex 'aO =. a kvO'
