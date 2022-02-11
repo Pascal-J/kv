@@ -23,7 +23,7 @@ deep operations are supported, where typical kv right arguments (set add) will w
   
   kvtest code:
   
-  pD_z_ =: (1!:2&2) : (] [ (1!:2&2)@:(,&<)) 
+  pD_z_ =: (1!:2&2) : (] [ (1!:2&2)@:(,&<))  
 myattr =: tosym 'sorted unique foreignkey foreignval'
 pD d=: ('nums' kvbulk < 'field2 field3' kvbulk > 1 ; 0 1 0 0)   kvadd  ' descF' kvf 'descF field2' kvbulk 2 $ < myattr kvbulk  _1 0 0 0
 'set on empty dict.  using gerund dsL call' pD 'dicts1 dicts2' kvbulk ,. (< kvEMPTY) kvset~ each ';'&cut`cut kvdsL each ('asdf`v' ; '2nd dict key with embedded spaces ` v2')
