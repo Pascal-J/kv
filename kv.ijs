@@ -107,7 +107,7 @@ kvset1 =:  ([ kvdel~ -.&G0) kvupdate1^:(0 <  #@G0~)  ([ kvf~ -.&G0) kvadd1^:(0 <
 kvsetL =: kvdsL@[ kvset ]  NB. AVV adverb uses DSL to create x kv from string.
 NB. set at depth1 key1 kvbulk keys;values will set keys and values at depth of key1. 
 NB.	if x is hierarchy of key1 kvbulk key2 kvbulk keys;values then key2 will have its value replaced by keys;values... instead of set(update/add) operation at depth.
-NB.TODO: 	Having set work at unlimited depth will require extra leading boxes in x similar to kvd
+NB.TODO: 	Having set work at unlimited depth will require extra leading boxes in x similar to kvd,kvdeld
 kvsetd =: (] kvset~ linearize@G0~ (kvbulk <) ,@:>@G1~ kvset G0~ kv ])
 NB. ADV optimize kv function once kv m is static.  resulting function is monadic for keys to retrieve.  Returned function embeds full kv inside it. Not sure if special code for (m i: ]) so not using.
 kvO =: 1 : 'm =. kvuniquify m label_. (((G1 m) {~  (# G0 m) -.~ (G0  m)&i:)@:,.@tosym (linearize@)) f.'  
@@ -150,6 +150,8 @@ bench =: 4 : 0
 'random 30key optimized access' pD timespacex 'aO k'
 'same 30key unoptimized access' pD timespacex 'k kv a'
 'matches' pD k (aO@[ -: kv)a
+'create 100000 key/vals (uniquified) in range of 2*y so half are new half are existing' pD timespacex 'b =. (kvbulk~ ":) ? 100000 $ 2*y'
+'set (update or add depending on existing status of key) 100000 keys/vals into first kv' pD timespacex 'b kvset a'
 aO k
 )
 pD 'bench_kvtest_~ 100000 for optimizations and timimgs. 1000000 bench_kvtest_ 50000 for greater contrast'
