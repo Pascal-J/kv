@@ -9,7 +9,6 @@ If a requested retrival key has no associated value, then nothing is returned,
   where in a list of requested keys, nothing combined with other requested values is the list of the other values.
 
 
-## use raw mode for readability
 
 intended for `coinsert 'kv'` into any other locale.  (should be) safe for `coinsert_z_ 'kv'` (base needs extra `coinsert 'z'` call)
 unique key implied access even when non-unique keys permitted.
