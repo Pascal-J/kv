@@ -1,6 +1,16 @@
 # kv
 dictionary for J.  inverted table implemetation auto upgrades from native to boxed data including nested dictionaries.
 
+Definition:
+
+A datastructure such that when provided with a list of keys a get function will retrieve 
+  the latest value associated with that key as a result of latest set/add/del operations that could have modified that associated value. 
+If a requested retrival key has no associated value, then nothing is returned, 
+  where in a list of requested keys, nothing combined with other requested values is the list of the other values.
+
+
+## use raw mode for readability
+
 intended for `coinsert 'kv'` into any other locale.  (should be) safe for `coinsert_z_ 'kv'` (base needs extra `coinsert 'z'` call)
 unique key implied access even when non-unique keys permitted.
 create(bulk), add, del, update/set all have versions to allow/avoid duplicates.  1 suffix permits duplicates
