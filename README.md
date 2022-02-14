@@ -1,9 +1,7 @@
 # kv
 dictionary for J.  inverted table implemetation auto upgrades from native to boxed data including nested dictionaries.
 
-#use raw mode for readability
-
-intended for coinsert 'kv' into any other locale.  (should be) safe for coinsert_z_ 'kv' (base needs extra coinsert 'z' call)
+intended for `coinsert 'kv'` into any other locale.  (should be) safe for `coinsert_z_ 'kv'` (base needs extra `coinsert 'z'` call)
 unique key implied access even when non-unique keys permitted.
 create(bulk), add, del, update/set all have versions to allow/avoid duplicates.  1 suffix permits duplicates
 optimized for bulk operations, where arguments to functions are either a list of keys, or a kv dictionary.
@@ -11,20 +9,21 @@ kv dictionary always y argument.  modifications return copies.
 A DSL is provided to permit one line string descriptions of the simplest dictionaries.
 Non-unique key implementation can still provide unique key expected behaviour.  add appending a duplicate value creates an undo operation when del deletes the last value.
 	kvadd1 instead of kvadd
-Multiple internal keys also permit using kv with meaningful order and /.(key) "applications" and classifiers.
-tosym replacement for s: cut instead of leading delimiter.  tosym on symbols returns the symbols instead of error.
+Multiple internal keys also permit using kv with meaningful order and `/.`(key) "applications" and classifiers.
+`tosym` replacement for `s:` cut instead of leading delimiter.  `tosym` on symbols returns the symbols instead of error.
 values kept native numeric or string (padded) if possible.  Otherwise boxed.
-values can hold other kv structures, and so may wish to hold 3 independent dictionaries for each data type: numeric, string, boxed.
-kv (get) function returns values only for keys found, returns i.0 if no keys found.
+values can hold other `kv` structures, and so may wish to hold 3 independent dictionaries for each data type: numeric, string, boxed.
+kv (get) function returns values only for keys found, returns `i.0` if no keys found.
 adding or updating unboxed values will promote to boxed if internal values are boxed.
 
-deep operations are supported, where typical kv right arguments (set add) will when provided with nested k1;(kv) :
-	will modify kv deeply with (k0 kvbulk (keys;vals) set kvdata will set at k0 level.
+deep operations are supported, where typical `kv` right arguments (set add) will when provided with nested `k1;(kv)` :
+	will modify `kv` deeply with (k0 kvbulk (keys;vals) set kvdata will set at k0 level.
 	get/del can access/del at infinte depth.
   
   
-  kvtest code:
-  
+## kvtest code
+
+```j
   pD_z_ =: (1!:2&2) : (] [ (1!:2&2)@:(,&<))  
  myattr =: tosym 'sorted unique foreignkey foreignval' 
 
@@ -464,4 +463,4 @@ Benchmark for 1m keys/values create/optimize/search
 ┌──────────────────────────────────────────────────────────────────────────────────────┬───────────────────┐
 │set (update or add depending on existing status of key) 100000 keys/vals into first kv│0.0214939 5.11204e7│
 └──────────────────────────────────────────────────────────────────────────────────────┴───────────────────┘
-
+```
