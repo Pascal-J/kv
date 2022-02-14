@@ -1,7 +1,7 @@
 # kv
 dictionary for J.  inverted table implemetation auto upgrades from native to boxed data including nested dictionaries.
 
-Definition:
+Definition of dictionary:
 
 A datastructure such that when provided with a list of keys a get function will retrieve 
   the latest value associated with that key as a result of latest set/add/del operations that could have modified that associated value. 
