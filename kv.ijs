@@ -37,6 +37,17 @@ A dictionary or dictionary hierarchy is a single J entity that can be serialized
 )
 
 Note 'basic operation'
+(key0;key1...) kv val1;val2... creates dictionary.  keys can also be a space separated string, or symbols. # of keys and values must match
+	a dictionary is 2 boxes. left is keys as symbols, right is values.  Both are table shaped.
+
+
+(key0;key1...) kvget dictionary...  retrieves any values associated with key0 and/or key1 and/or other keys in list.  Unboxes values if possible.
+	kvdel has same calling signature.  will delete any keys+associated values matching x argument.
+	kvfilt will return a dictionary instead of just values.
+	kvfiltall will return duplicate keys instead of just last one. kvdelall deletes all duplicate keys instead of last.
+dictionary kvset dictionary... uses x dictionary key/values to update/add y dictionary.  Merging matching keys with new values from x.
+	kvadd has same signature.
+)
 
 Note 'kv features'
 intended for coinsert 'kv' into any other locale.  (should be) safe for coinsert_z_ 'kv' (base needs extra coinsert 'z' call)
