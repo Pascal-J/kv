@@ -32,6 +32,9 @@ Basic operations:
 	kvfiltall will return duplicate keys instead of just last one. kvdelall deletes all duplicate keys instead of last.
 dictionary kvset dictionary... uses x dictionary key/values to update/add y dictionary.  Merging matching keys with new values from x.
 	kvadd has same signature.
+	
+deep set of dictionaries supported with embedded dictionary in x argument.  d suffix to functions operate in deep mode.
+DSL versions of above versions allow a single x string to represent dictionary x arguments.  including deep operations.
 ```
 
 Features:
