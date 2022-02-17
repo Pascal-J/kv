@@ -2,7 +2,7 @@
 dictionary for J.  inverted table implemetation auto upgrades from native to boxed data including nested dictionaries.
 
 Definition of dictionary:
-
+```j
 A datastructure such that when provided with a list of keys a get function will retrieve 
   the latest value associated with that key as a result of latest set/add/del operations that could have modified that associated value. 
 If a requested retrival key has no associated value, then nothing is returned, 
@@ -18,9 +18,10 @@ Boxed values permit embedded keyed dictionaries.
 	keyed data/value access is similar to J locale access to data/functions.  
 	An embedded dictionary is an association of data variables that replaces use for a locale/datastructure.
 A dictionary or dictionary hierarchy is a single J entity that can be serialized/deserialized with 3!:1 , 3!:2
+```
 
 Basic operations:
-
+```j
 (key0;key1...) kv val1;val2... creates dictionary.  keys can also be a space separated string, or symbols. # of keys and values must match
 	a dictionary is 2 boxes. left is keys as symbols, right is values.  Both are table shaped.
 
@@ -31,10 +32,10 @@ Basic operations:
 	kvfiltall will return duplicate keys instead of just last one. kvdelall deletes all duplicate keys instead of last.
 dictionary kvset dictionary... uses x dictionary key/values to update/add y dictionary.  Merging matching keys with new values from x.
 	kvadd has same signature.
-
+```
 
 Features:
-
+```j
 intended for coinsert 'kv' into any other locale.  (should be) safe for coinsert_z_ 'kv' (base needs extra coinsert 'z' call)
 unique key implied access even when non-unique keys permitted.
 create(bulk), add, del, update/set all have versions to allow/avoid duplicates.  1 suffix permits duplicates
@@ -55,9 +56,9 @@ adding or updating unboxed values will promote to boxed if internal values are b
 deep operations are supported, where typical kv right arguments (set add) will when provided with nested k1;(kv) :
 	will modify kv deeply with (k0 kv (keys;vals) set kvdata will set at k0 level.
 	get/del can access/del at infinte depth by appending (single key) path
-
+```
 Limitations:
-
+```j
 values lists are stored as tables.  If you attempt to store a higher shape than a table, 
 	it is presumed to be a mistake.
 linearize is a crutch to combine with "tableize" (monad ,.) to "fix" situations that might create/provide greater than table shapes prior to inclusion as a table.
@@ -67,17 +68,17 @@ set,set1,update,update1 present needlessly many options for extremely limited be
 	Behaviour deviances that I know how to fix easily.
 	update1 will add a key instead of updating when trying to add a boxed or numeric value to a string value table (+vice versa)
 	update and update1 will operate as set with autoboxing if adding a string or numeric value to a boxed value table.
-
+```
 
 Architecture considerations:
-  
+```j
 Non-unique mode (add1 instead of set) can provide 4x update throughput.  
   Using optimize every 1 to 5 seconds can serve a slightly out of date dataset to a wide audience with 100x access throughput on top of 4x update throughput.
 keyed boxed arrays in a single dictionary provides keyed inverted table structure, or associated data as alternative to classes.
 Using J native data offers a size and access performance benefit, and is encouraged.
 Arrays/tables as key values makes J suitable for key-value oriented programs.
 	JSON implementation with kv should outperform current J implementations.
-
+```
   
 ## kvtest code
 
