@@ -8,27 +8,76 @@ A datastructure such that when provided with a list of keys a get function will 
 If a requested retrival key has no associated value, then nothing is returned, 
   where in a list of requested keys, nothing combined with other requested values is the list of the other values.
 
+If a user only uses set/del modifiers after loading or optimizing to a unique dictionary, then the dictionary will remain in unique state.
+  a user may use special add1 function to place kv in non-unique state.  get and filter will still operate as if unique.
+  in non unique mode, filtall and delall will affect multiple values.  set/del/get operate on last key occurrence + related value.
+
+keys are stored as a table of symbols.  Values as a table of numeric, string, or boxed values.  Table width for simplest keys and values is 1.
+This allows multikey keys or metainfo after first key.  Allows inverted table or associated array datastructures.
+Boxed values permit embedded keyed dictionaries.
+	keyed data/value access is similar to J locale access to data/functions.  
+	An embedded dictionary is an association of data variables that replaces use for a locale/datastructure.
+A dictionary or dictionary hierarchy is a single J entity that can be serialized/deserialized with 3!:1 , 3!:2
+
+Basic operations:
+
+(key0;key1...) kv val1;val2... creates dictionary.  keys can also be a space separated string, or symbols. # of keys and values must match
+	a dictionary is 2 boxes. left is keys as symbols, right is values.  Both are table shaped.
 
 
-intended for `coinsert 'kv'` into any other locale.  (should be) safe for `coinsert_z_ 'kv'` (base needs extra `coinsert 'z'` call)
+(key0;key1...) kvget dictionary...  retrieves any values associated with key0 and/or key1 and/or other keys in list.  Unboxes values if possible.
+	kvdel has same calling signature.  will delete any keys+associated values matching x argument.
+	kvfilt will return a dictionary instead of just values.
+	kvfiltall will return duplicate keys instead of just last one. kvdelall deletes all duplicate keys instead of last.
+dictionary kvset dictionary... uses x dictionary key/values to update/add y dictionary.  Merging matching keys with new values from x.
+	kvadd has same signature.
+
+
+Features:
+
+intended for coinsert 'kv' into any other locale.  (should be) safe for coinsert_z_ 'kv' (base needs extra coinsert 'z' call)
 unique key implied access even when non-unique keys permitted.
 create(bulk), add, del, update/set all have versions to allow/avoid duplicates.  1 suffix permits duplicates
 optimized for bulk operations, where arguments to functions are either a list of keys, or a kv dictionary.
-kv dictionary always y argument.  modifications return copies.
-A DSL is provided to permit one line string descriptions of the simplest dictionaries.
-Non-unique key implementation can still provide unique key expected behaviour.  add appending a duplicate value creates an undo operation when del deletes the last value.
-	kvadd1 instead of kvadd
-Multiple internal keys also permit using kv with meaningful order and `/.`(key) "applications" and classifiers.
-`tosym` replacement for `s:` cut instead of leading delimiter.  `tosym` on symbols returns the symbols instead of error.
+kv dictionary always y argument to kvfunctions.  modifications return copies.'
+	x right argument to set/add is another dictionary (key,value pairs)
+	x right argument to get/del is a boxed list of symbol keys or keys as strings.
+A DSL is provided to permit one line string descriptions of required x argument dictionaries or deep set/get/del variations.
+Non-unique key implementation can still provide unique key expected behaviour.  add appending a duplicate key-value creates an undo operation when del deletes the last value.
+	use kvadd1 instead of kvadd
+Multiple internal keys also permit using kv with meaningful order (kvinsert permits ordered manipulation) and /.(key) "applications" and classifiers.
+tosym replacement for s: cut instead of leading delimiter.  tosym on symbols returns the symbols instead of error.  Use of ;: in dsl version allows J words as keys/symbols.
 values kept native numeric or string (padded) if possible.  Otherwise boxed.
-values can hold other `kv` structures, and so may wish to hold 3 independent dictionaries for each data type: numeric, string, boxed.
-kv (get) function returns values only for keys found, returns `i.0` if no keys found.
+values can hold other kv structures, and so may wish to hold 3 independent dictionaries for each data type: numeric, string, boxed.
+kv (get) function returns values only for keys found, returns i.0 if no keys found.
 adding or updating unboxed values will promote to boxed if internal values are boxed.
 
-deep operations are supported, where typical `kv` right arguments (set add) will when provided with nested `k1;(kv)` :
-	will modify `kv` deeply with (k0 kvbulk (keys;vals) set kvdata will set at k0 level.
-	get/del can access/del at infinte depth.
+deep operations are supported, where typical kv right arguments (set add) will when provided with nested k1;(kv) :
+	will modify kv deeply with (k0 kv (keys;vals) set kvdata will set at k0 level.
+	get/del can access/del at infinte depth by appending (single key) path
+
+Limitations:
+
+values lists are stored as tables.  If you attempt to store a higher shape than a table, 
+	it is presumed to be a mistake.
+linearize is a crutch to combine with "tableize" (monad ,.) to "fix" situations that might create/provide greater than table shapes prior to inclusion as a table.
+	kv does not use ,.@linearize combo in order to prevent non table keys/values.
+set,set1,update,update1 present needlessly many options for extremely limited behaviour operation.  
+	Behaviour that has a good argument for systemically preventing.
+	Behaviour deviances that I know how to fix easily.
+	update1 will add a key instead of updating when trying to add a boxed or numeric value to a string value table (+vice versa)
+	update and update1 will operate as set with autoboxing if adding a string or numeric value to a boxed value table.
+
+
+Architecture considerations:
   
+Non-unique mode (add1 instead of set) can provide 4x update throughput.  
+  Using optimize every 1 to 5 seconds can serve a slightly out of date dataset to a wide audience with 100x access throughput on top of 4x update throughput.
+keyed boxed arrays in a single dictionary provides keyed inverted table structure, or associated data as alternative to classes.
+Using J native data offers a size and access performance benefit, and is encouraged.
+Arrays/tables as key values makes J suitable for key-value oriented programs.
+	JSON implementation with kv should outperform current J implementations.
+
   
 ## kvtest code
 
