@@ -16,32 +16,70 @@ kvvals =: G1 =: 1 {:: ]
 G2 =: 2 {:: ]
 ss =: {{ ' '&cut m }}
 bb =: 1 : 'dltb each (''`''&cut) m'
+
 Note 'kv/dictionary definition'
 A datastructure such that when provided with a list of keys a get function will retrieve 
   the latest value associated with that key as a result of latest set/add/del operations that could have modified that associated value. 
 If a requested retrival key has no associated value, then nothing is returned, 
   where in a list of requested keys, nothing combined with other requested values is the list of the other values.
+
+If a user only uses set/del modifiers after loading or optimizing to a unique dictionary, then the dictionary will remain in unique state.
+  a user may use special add1 function to place kv in non-unique state.  get and filter will still operate as if unique.
+  in non unique mode, filtall and delall will affect multiple values.  set/del/get operate on last key occurrence + related value.
+
+keys are stored as a table of symbols.  Values as a table of numeric, string, or boxed values.  Table width for simplest keys and values is 1.
+This allows multikey keys or metainfo after first key.  Allows inverted table or associated array datastructures.
+Boxed values permit embedded keyed dictionaries.
+	keyed data/value access is similar to J locale access to data/functions.  
+	An embedded dictionary is an association of data variables that replaces use for a locale/datastructure.
+A dictionary or dictionary hierarchy is a single J entity that can be serialized/deserialized with 3!:1 , 3!:2
+
 )
+
+Note 'basic operation'
 
 Note 'kv features'
 intended for coinsert 'kv' into any other locale.  (should be) safe for coinsert_z_ 'kv' (base needs extra coinsert 'z' call)
 unique key implied access even when non-unique keys permitted.
 create(bulk), add, del, update/set all have versions to allow/avoid duplicates.  1 suffix permits duplicates
 optimized for bulk operations, where arguments to functions are either a list of keys, or a kv dictionary.
-kv dictionary always y argument.  modifications return copies.
-A DSL is provided to permit one line string descriptions of the simplest dictionaries.
-Non-unique key implementation can still provide unique key expected behaviour.  add appending a duplicate value creates an undo operation when del deletes the last value.
-	kvadd1 instead of kvadd
-Multiple internal keys also permit using kv with meaningful order and /.(key) "applications" and classifiers.
-tosym replacement for s: cut instead of leading delimiter.  tosym on symbols returns the symbols instead of error.
+kv dictionary always y argument to kvfunctions.  modifications return copies.'
+	x right argument to set/add is another dictionary (key,value pairs)
+	x right argument to get/del is a boxed list of symbol keys or keys as strings.
+A DSL is provided to permit one line string descriptions of required x argument dictionaries or deep set/get/del variations.
+Non-unique key implementation can still provide unique key expected behaviour.  add appending a duplicate key-value creates an undo operation when del deletes the last value.
+	use kvadd1 instead of kvadd
+Multiple internal keys also permit using kv with meaningful order (kvinsert permits ordered manipulation) and /.(key) "applications" and classifiers.
+tosym replacement for s: cut instead of leading delimiter.  tosym on symbols returns the symbols instead of error.  Use of ;: in dsl version allows J words as keys/symbols.
 values kept native numeric or string (padded) if possible.  Otherwise boxed.
 values can hold other kv structures, and so may wish to hold 3 independent dictionaries for each data type: numeric, string, boxed.
 kv (get) function returns values only for keys found, returns i.0 if no keys found.
 adding or updating unboxed values will promote to boxed if internal values are boxed.
 
 deep operations are supported, where typical kv right arguments (set add) will when provided with nested k1;(kv) :
-	will modify kv deeply with (k0 kvbulk (keys;vals) set kvdata will set at k0 level.
-	get/del can access/del at infinte depth.
+	will modify kv deeply with (k0 kv (keys;vals) set kvdata will set at k0 level.
+	get/del can access/del at infinte depth by appending (single key) path
+)
+
+Note 'limitations'
+values lists are stored as tables.  If you attempt to store a higher shape than a table, 
+	it is presumed to be a mistake.
+linearize is a crutch to combine with "tableize" (monad ,.) to "fix" situations that might create/provide greater than table shapes prior to inclusion as a table.
+	kv does not use ,.@linearize combo in order to prevent non table keys/values.
+set,set1,update,update1 present needlessly many options for extremely limited behaviour operation.  
+	Behaviour that has a good argument for systemically preventing.
+	Behaviour deviances that I know how to fix easily.
+	update1 will add a key instead of updating when trying to add a boxed or numeric value to a string value table (+vice versa)
+	update and update1 will operate as set with autoboxing if adding a string or numeric value to a boxed value table.
+)
+
+Note 'Architecture'
+Non-unique mode (add1 instead of set) can provide 4x update throughput.  
+  Using optimize every 1 to 5 seconds can serve a slightly out of date dataset to a wide audience with 100x access throughput on top of 4x update throughput.
+keyed boxed arrays in a single dictionary provides keyed inverted table structure, or associated data as alternative to classes.
+Using J native data offers a size and access performance benefit, and is encouraged.
+Arrays/tables as key values makes J suitable for key-value oriented programs.
+	JSON implementation with kv should outperform current J implementations.
 )
 
 kvEMPTY =: 2$ <,.i.0 NB. for reference. use kvbulk instead of set on empty
@@ -50,7 +88,7 @@ NB. filters dict for unique keys keeping the last value associated to a key (las
 kvuniquify =: (] {~L:_1  (] i: ~.)@:G0) ^: ( (#@~. < #)@:G0) NB. optimize for presumed unique.
 NB. returns a kv from list keys and values. keys transformed into symbols and shaped as num,1.  If values a list, also shaped num,1 so that future adds will create fills if they are longer than atoms.
 kv1 =: (,.^:(1 = #@$)@] ,&<~ ] =&# assertC 'keys and values must have same item count' (] $~ 1 ,~ #)@:tosym@[ )
-kv =:   kvbulk1 (kvuniquify@:)  NB. choice of functions, permits unique or non-unique implmentations.
+kv =:   kv1 (kvuniquify@:)  NB. choice of functions, permits unique or non-unique implmentations.
 
 NB.   ' '&cut(&.>)`(".(&.>))"0 ' as ` 3' bb NB. cuts first on ` ' '&cut for first, ". for 2nd box
 
@@ -62,7 +100,7 @@ NB.		". will turn numeric.  supports expressions such as 10 3 $ i.30 to make 10 
 NB.		';'&cut will make string items. (keeps leading/trailing spaces)
 NB.		maybenum@:(';'&cut) will cut on ; and then turn any items that can be into numbers.
 NB. Any boxed values created by DSL, will attempt to be unboxed into items if no error.  So if all strings, will automatically be turned into padded items.
-kvdsL =: (cut`) 1 : 0 ((kv&.>(<@)/(>@)(>@)(f.))@:) 
+kvdsL =: (;:`) 1 : 0 ((kv&.>(<@)/(>@)(>@)(f.))@:) 
 '`k val' =. _2 {. m
 NB.(k @:G0 ,&< (> :: ])@:val@:G1)@:(dltb each@:('`'&cut)) f. 
 (k @:G0 ,&< (> :: ])@:val@:G1) ((@(_2&{.)) ,~ tosym L:0(^:(0 <#))@:(_2 &}.) )@:(dltb each@:('`'&cut)) f. 
@@ -79,7 +117,6 @@ kvadd =: kvuniquify@:kvadd1  NB. adds and updates uniquify
 kvaddL =: kvdsL@[ kvadd ]  NB. adverb (AVV) that uses DSL to process x string. see kvdsL for u param.
 kvadd1L =: kvdsL@[ kvadd1 ]  NB. adverb (AVV) that uses DSL to process x string. see kvdsL for u param.
 NB. manipulate the key/value order by inserting x: (ks kv vs),< atindexpoint (3 boxes).  Does not uniquify. if keys exist later than insert point, those values are still "official" (get result)
-kvinsert =: (}:@[ kvadd1 ]) ([ (kvi~ ) (i.@(G1 + G2) pD@:(([ }.~  G0),(G2 i.@+ G1), G0 {. [) { [) ]) G2~ , ,&#&G0
 kvinsert =: (}:@[ kvadd1 ]) ([ kvi~ (i.@(G1 + G2) ([ {~ (-@G1 }. [ }.~  G0),~ (G2 (+ i.) G1),~ G0 {. [ ) ])) G2~ ([ , ((<: G1) *. 0 < [) assertC 'indexat must be between 0 and count of kvitems') ,&#&G0
 NB.ex: 	   ' gg fr` 133 15' ". kvaddL ' as fr' kvbulk 33 5
 
@@ -161,7 +198,7 @@ pD 'if numbers mixed with strings, values are upgraded to boxes'
 'make a mistake adding duplicate key' pDh d =: ('misc' kv 123) kvadd1 d
 'undo mistake... restore dict by deleting last key' pDh d=: 'misc' kvdel d
  'deep delete dic`misc`fds from `dic (masterdict over) d' pDh  'dic` misc `fds fd 'kvdeld 'dic' kv < d
-pD it =:  'Id Name Job Status' kv ,.&.:>"1 |:  maybenum each > ','cut each cutLF 0 : 0  NB. borrowing from https://github.com/tikkanz/jdataframe
+'create inverted table' pDh it =:  'Id Name Job Status' kv ,.&.:>"1 |:  maybenum each > ','cut each cutLF 0 : 0  NB. borrowing from https://github.com/tikkanz/jdataframe
 3,Jerry,Unemployed,Married
 6,Jan,CEO,Married
 5,Frieda,student,Single
@@ -169,7 +206,7 @@ pD it =:  'Id Name Job Status' kv ,.&.:>"1 |:  maybenum each > ','cut each cutLF
 )
 'dsL version matches' pD it (-:&]) itdsl kvdsL 'Id Name Job Status `3 6 5 1 ; Jerry Jan Frieda Alex  ;Unemployed:CEO:student:Waiter; Married Married Single   Separated' NB. note extra garbage spaces
 'itdisplay(selected fields) query on Job -:(padded) ''CEO'' or ''student'' ' pDh 'Id Name Job' itdisp1 (('CEO';'student') padstrmatch  'Job' kvget ]) kvQ it
-'dsL (; separated "keys") version of same query as kv' pDh (('CEO;student') padstrmatch  'Job' kvget ]) kvQ it
+'dsL (; separated "keys") version of same query as kv' pDh ('CEO;student' padstrmatch  'Job' kvget ]) kvQ it
 'add inverted table to "main" dic' pDh d =: ('it' kv < it) kvset d
 NB. x keys in range of 0 to y. numeric symbols associated with same numeric value.
 bench =: 4 : 0 
@@ -182,6 +219,9 @@ bench =: 4 : 0
 'matches' pD k (aO@[ -: kvget)a
 'create 100000 key/vals (uniquified) in range of 2*y so half are new half are existing' pD timespacex 'b =. (kv~ ":) ? 100000 $ 2*y'
 'set (update or add depending on existing status of key) 100000 keys/vals into first kv' pD timespacex 'b kvset a'
+'using add1 on the 100000 keys/vals into first kv' pD timespacex 'b kvadd1 a'
+'using uniquify after all of the add1s on the 100000 keys/vals into first kv' pD timespacex 'b kvuniquify@:kvadd1 a'
+'kvset result matches uniquify@:kvadd1' pD  b (kvset -: kvuniquify@:kvadd1) a
 aO k
 )
-pD 'bench_kvtest_~ 100000 for optimizations and timimgs. 1000000 bench_kvtest_ 50000 for greater contrast'
+pD 'bench_kvtest_~ 100000 for benchmark timimgs. 1000000 bench_kvtest_ 50000 for greater contrast'
