@@ -1,4 +1,4 @@
-coclass 'kv'
+ccoclass 'kv'
 assertC =: 2 : '] [ v (13!:8^:((0 e. ])`(12"_))) u'
 lr_z_ =: 3 : '5!:5 < ''y'''
 NB. utilities to clean/modify/process data
@@ -6,9 +6,11 @@ mdef =: 2 : 'n&u : u'  NB. monad default parameter n to dyad u
 dtb =:  ] #~  +./\.@:~: mdef ' '  NB. used to clean fills, if data gets dirty before turning into boxed. works with numeric fills fill atom is dyad param.
 cut =: ([: -.&a: <;._2@,~) mdef ' '
 numerify =: 0&".^:(2 = 3!:0)@]
-linearize =: (, $~ 1 -.~ $)@]
+linearize =: (, $~ 1 -.~ $)@]  NB. remove all 1 dimensions.
+tableize =:  ,/^:(2 < #@$)@,: NB. set shape count to 2, but opposed to ,., remove leading dimensions
 maybenum =: 0&".^:(] -:&linearize ":@:numerify)@dltb NB. for mixed string/num boxed values will convert strings that can be into numbers.
-standardnull =: (''"_)^:(0 e. $)
+standardnull =: (''"_)^:(0 e. $) NB. any 0s in shape equivalent to i.0
+Mifnull =: 1 : ' u`(u@])@.('''' -: [)' NB. monad application if x is null.  y null will still apply to null
 
 
 kvkeys =: G0 =: 0 {:: ]
@@ -47,6 +49,10 @@ Note 'basic operation'
 	kvfiltall will return duplicate keys instead of just last one. kvdelall deletes all duplicate keys instead of last.
 dictionary kvset dictionary... uses x dictionary key/values to update/add y dictionary.  Merging matching keys with new values from x.
 	kvadd has same signature.
+
+deep set of dictionaries supported with embedded dictionary in x argument.  d suffix to functions operate in deep mode.
+DSL versions of above versions allow a single x string to represent dictionary x arguments.  including deep operations.
+	The DSL variation of functions are adverbs named with L suffix.  Adverb parameter is either one function to parse value portion of string, or gerund that parses keyportion`valueportion
 )
 
 Note 'kv features'
@@ -123,14 +129,18 @@ itdsl =:  cut &>^:(1 = #)@(':'&cut)^:(2 = 3!:0)(>@:)@(,.^:(2 ~: 3!:0))@maybenum 
 NB. allows "upgrade" of value structure when new items are incompatible with existing ones.
 append =: , :: (, <"_1) :: ((<"_1)@[ , ]) :: ([ , <"_1@]) :: (<"_1@[ , <"_1@]) (,.@:)
 NB. append items from kv x into kv y.  1verb ommits uniquify step.
-kvadd1 =: append~ L:_1
+kvadd1 =: append~ L:_1(^:(0 <#@G0@[))  NB. guard against empty x dictionary.
 kvadd =: kvuniquify@:kvadd1  NB. adds and updates uniquify
 kvaddL =: kvdsL@[ kvadd ]  NB. adverb (AVV) that uses DSL to process x string. see kvdsL for u param.
 kvadd1L =: kvdsL@[ kvadd1 ]  NB. adverb (AVV) that uses DSL to process x string. see kvdsL for u param.
 NB. manipulate the key/value order by inserting x: (ks kv vs),< atindexpoint (3 boxes).  Does not uniquify. if keys exist later than insert point, those values are still "official" (get result)
 kvinsert =: (}:@[ kvadd1 ]) ([ kvi~ (i.@(G1 + G2) ([ {~ (-@G1 }. [ }.~  G0),~ (G2 (+ i.) G1),~ G0 {. [ ) ])) G2~ ([ , ((<: G1) *. 0 < [) assertC 'indexat must be between 0 and count of kvitems') ,&#&G0
 NB.ex: 	   ' gg fr` 133 15' ". kvaddL ' as fr' kvbulk 33 5
-
+NB. very useful for function call decomposition where some parameters may be missing from dict, but default values are needed.
+	NB.  'a b c d' =. 'certainA maybeB certainC maybeD' kvgetb '('maybeB maybeD' kv bdefaultval , defaultval) kvaddm y NB. y is dict
+NB. or         'a b c d' =. G1 'certainA maybeB certainC maybeD' kvfilt '('maybeB maybeD' kv bdefaultval , defaultval) kvaddm y NB. y is dict
+NB. or improved with nulls as defaults:  'a b c d' =. 'a b c d' kvgetf y
+kvaddm =: (] kvadd1~ [ kvfilt~ ([ #~ -.@:e.)&G0) NB.add only if key is missing.  x is dict of new keys new vals. y is dict to update
 
 NB. if kv keys are static, saving indexes may speed access. x is list of numeric indices, kv y is filtered by index list x
 NB. kv keys and values are static for purposes of functions that access keys or values in order to 
@@ -143,6 +153,9 @@ kvdeld =: ] ([ kvsetd~ (linearize each)@}:@]  kv&.>(<@)/(>@)(>@)@:(, <@<) >@{:@]
 
 NB. gets values by keys in x from kv y.  if any x not found, then omit from result. if no x found return i.0
 kvget =: (G1 {~ G0 (#@[ -.~ i:) ,.@tosym@[)(linearize@)((> :: ])@)NB. if values are all atomic, then returns atom or list of atoms. BUGf: if items are all unpadded chars then will concatenate them.
+kvgetb =: (G1 {~ G0 (#@[ -.~ i:) ,.@tosym@[)(linearize@)  NB. do not attempt unboxing.
+kvgetf =: ([ kvgetb ] kvaddm~  a: (] ,&< [ ,.@:#~ #@]) ,.@tosym@[) NB. missing keys still return filled with values (i.0)  no attempt to unbox.
+NB. when attempting multikey get, ensure that any possible missing keys are at end of list, or use kvfilt instead.  'key1 missing key2 missing2' as x will return 2 keys without indication of which values correspond to found keys.
 NB. filters kv y by keys in x
 kvfilt =: (] {~ L:_1 G0 (#@[ -.~ i:) ,.@tosym@[)
 NB. =========================================================
@@ -179,60 +192,126 @@ NB.TODO: 	Having set work at unlimited depth will require extra leading boxes in
 kvsetd =: (] kvset~ linearize@G0~ (kv <) ,@:>@G1~ kvset G0~ kvget ])
 NB. ADV optimize kv function once kv m is static.  resulting function is monadic kvget for keys to retrieve.  Returned function embeds full kv inside it. Not sure if special code for (m i: ]) so not using.
 kvO =: 1 : 'm =. kvuniquify m label_. (((G1 m) {~  (# G0 m) -.~ (G0  m)&i:)@:,.@tosym (linearize@)) f.'  
+NB. count = 2, boxed, box0 contains symbols shaped as table.
+iskv =: (( (2 = #@$) *. 65536 = 3!:0)@G0 *. (1 <: L.)*. 2 = #)(@]) :: 0  NB. just checking keys shaped as table.
+NB. conjunction for single key n.  dyad Verb u applied as kvy set~ key kv [ u (key get kvy)  
+NB. updates key n based on dyad u
+forkey =: 2 : '] kvset~ n kv [ u n kvget ]'
+NB. can be chained for unlimited deep set, but often requires a boxing step after u verb because:
+	NB. kvget will unbox when possible.  kvset returns a full dictionary, but to be deep set, requires being an item (so boxing) to have a key association
+NB. ('str1' kv ,:'ff') <@kvset forkey'misc'd_kvtest_
+NB. (,: 'ff')  [ forkey 'str1'(<@) forkey'misc'  d_kvtest_
+NB. 'ff'    ,(,:@) forkey'str1'(<@)forkey'misc'd_kvtest_ NB. (,:@) itemizes result string. one item per key
+NB. (' '&cut kvdsL  'str1 fds ` ff fds2') <@[ forkey 'd1'(<@) forkey'misc'  d_kvtest_
+NB. (' '&cut kvdsL 'str1 fds` ff fds2')  kvset(<@) forkey'misc'  d_kvtest_
 
 
-coclass 'kvtest'
+NB. variant that only updates if key does not return null. n(ull guarded)
+forkeyn =: 2 : '(] kvset~ n kv [ u n kvget ])^:(0 < n #@kvget ])'
+
+NB. call test code.  y ignored.
+kvtest =: 3 : 0
+MYDIR =: getpath_j_  '\/' rplc~ > (4!:4<'thisfile'){(4!:3)  thisfile=:'' NB. boilerplate to set the working directory
+load MYDIR, 'kvtest.ijs'
+)
+
+
+coclass 'ra'
 coinsert 'kv'
-pD_z_ =: (1!:2&2) : (] [ (1!:2&2)@:(,&<)) 
-pDh =: (1!:2&2) 1 : ' u :   (] [&u '': vvv'' ,~ [)'
-myattr =: tosym 'sorted unique foreignkey foreignval'
-pD d=: ('nums' kv < 'field2 field3' kv > 1 ; 0 1 0 0)   kvadd  ' descF' kvfilt 'descF field2' kv 2 $ < myattr kv  _1 0 0 0
-'set on empty dict.  using gerund dsL call' pDh 'dicts1 dicts2' kv ,. (< kvEMPTY) kvset~ each ';'&cut`cut kvdsL each ('asdf`v' ; '2nd dict key with embedded spaces ` v2')
-'transform numeric array with a symbol list into a dictionary' pDh myattr kv 'nums ` field2' kvgetd d
-'dictionary to values' pDh ,@kvvals myattr kv 'nums ` field2' kvgetd d
+Note 'Ragged Array'
+A ragged array is equivalent to a list of boxed homogeneous strings or numbers, but also allows nulls.
+It is an alternative to J's usual square arrays that avoids both fills and boxes.
 
- d =: ('strs' kv < cut kvdsL 'str1 str2 str3`g asdf xcvb')  kvset d
-NB. 'manual deep update of strs`str1`ggg
- ((< 'str1 `ggg ' cut kvsetL 'strs' kvget d) kv~ 'strs') kvset d
-'multidict' pDh d kvset~ kv&.>(<@)/(>@)(>@)  ( <'strs'),(tosym' str1 fds'),&< 'gg',:'fds'
+Implementation is through a kv that includes
+`data:  a flat homogeneous array.
+`lengths: an array holding the length of each item in item order.  0 is code for null.
+`indexes: optional start indexes of items into flat array.  Same length as `lengths.  Performance boost for access.  Penalty for updates.
+`keys: optional keyed access to items.  list of symbols equal in length to `lengths and `indexes
+`cutpoints: optional boolean list similar to indexes.  Use to feed to (cutpoints u;.1 data), where u is  < or a search function
+	cutpoints exclude nulls.
+`disallownulls: used to remove nulls and filter out future nulls in lengths/data.
+`includesnulls: some functions may have to remove nulls that exist, or warn user against use.
 
-'simple dsL add of deep misc`fields`values' pDh d =: 'misc ` str1 fds ` gg fds ' cut kvsetL d
-'deep get strs ` str1 str2' pDh 'strs ` str1 str2' kvgetd  d
-'use `misc vals to deep set strs'  pDh (kvsetd~ 'strs' (kv <) 'misc'&kvget )  d
-'subkey access str1 str2 for all if all dicts with kvget"1' pDh  ,/ 'str1 str2' kvget"1 (G0 kvget ]) d
-'subkey access str2 str1  with <@kvget"1 and clean for empties' pDh  a: -.~ standardnull each 'str2 str1' <@(kvget"1) (G0 kvget ]) d
-'subkey filter str2 str1  with <@kvfilt"1 returns list of dictionaries)' pDh  ('str2 str1' kvfilt"1 G0 kvget ]) d
-'subkey filter str2 str1  with <@kvfilt"1 adding back keys' pDh  (,@G0 kv 'str2 str1' kvfilt"1 G0 kvget ]) d
-pD 'empty dictionary is "2$ <,.i.0", but a filtered empty dictionary retains its original value shape'
-pD 'if numbers mixed with strings, values are upgraded to boxes'
-'add 2 numeric keys to all (last filtered) dictionaries with dsl ". kvsetL"1' pDh 'a b ` 3 4' ". kvsetL"1 ( 'str2 str1' kvfilt"1 G0 kvget ]) d
-'make a mistake adding duplicate key' pDh d =: ('misc' kv 123) kvadd1 d
-'undo mistake... restore dict by deleting last key' pDh d=: 'misc' kvdel d
- 'deep delete dic`misc`fds from `dic (masterdict over) d' pDh  'dic` misc `fds fd 'kvdeld 'dic' kv < d
-'create inverted table' pDh it =:  'Id Name Job Status' kv ,.&.:>"1 |:  maybenum each > ','cut each cutLF 0 : 0  NB. borrowing from https://github.com/tikkanz/jdataframe
-3,Jerry,Unemployed,Married
-6,Jan,CEO,Married
-5,Frieda,student,Single
-1,Alex,Waiter,Separated
+implementation optimization is to erase indexes on set/insert, create if empty on get, and extend on add.
+
+Reasons to use:
+padding could be difficult to undo
+searching from end of "words"/strings interfered by padding.
+whole word/str search that prefilters by length.
+search on flat array.  Might make words Proper cased, or include terminator between strings to keep search within string boundaries.
+keyed/indexed access focus.
+
+if flat array is to be converted to list of boxed values before searching, it would be lower performance than holding boxed values.
+Though C implementation/special code for unboxing, might make general "virtual boxed" search ok. 
 )
-'dsL version matches' pD it (-:&]) itdsl kvdsL 'Id Name Job Status `3 6 5 1 ; Jerry Jan Frieda Alex  ;Unemployed:CEO:student:Waiter; Married Married Single   Separated' NB. note extra garbage spaces
-'itdisplay(selected fields) query on Job -:(padded) ''CEO'' or ''student'' ' pDh 'Id Name Job' itdisp1 (('CEO';'student') padstrmatch  'Job' kvget ]) kvQ it
-'dsL (; separated "keys") version of same query as kv' pDh ('CEO;student' padstrmatch  'Job' kvget ]) kvQ it
-'add inverted table to "main" dic' pDh d =: ('it' kv < it) kvset d
-NB. x keys in range of 0 to y. numeric symbols associated with same numeric value.
-bench =: 4 : 0 
-'create ? x$y keys/vals ignoring duplicates' pD timespacex 'a =. (kv~ ":) ? x$y'
-'uniquify on last step' pD timespacex 'kvuniquify a'
-'30 keys' pD k =. ": ? 30 $ y
-'uniquify and optimize' pD timespacex 'aO =. a kvO'
-'random 30key optimized access' pD timespacex 'aO k'
-'same 30key unoptimized access' pD timespacex 'k kvget a'
-'matches' pD k (aO@[ -: kvget)a
-'create 100000 key/vals (uniquified) in range of 2*y so half are new half are existing' pD timespacex 'b =. (kv~ ":) ? 100000 $ 2*y'
-'set (update or add depending on existing status of key) 100000 keys/vals into first kv' pD timespacex 'b kvset a'
-'using add1 on the 100000 keys/vals into first kv' pD timespacex 'b kvadd1 a'
-'using uniquify after all of the add1s on the 100000 keys/vals into first kv' pD timespacex 'b kvuniquify@:kvadd1 a'
-'kvset result matches uniquify@:kvadd1' pD  b (kvset -: kvuniquify@:kvadd1) a
-aO k
+
+Note 'Motivations/Decisions'
+Motivation to make a kv based structure, adding some complications to ra to support nulls and keyed access.
+kv provides an object replacement framework
+
+Design mistake #1: including null support.  Should be a separate compatible class.
+	get access is fine with nulls, but "cutpoints" access/processing doesn't.  So a null check/removal step is wasteful.
+
+
+
+
+
 )
-pD 'bench_kvtest_~ 100000 for benchmark timimgs. 1000000 bench_kvtest_ 50000 for greater contrast'
+
+amend =: [` ([. ` ar) `{`] `: 6 ` (]."_) `] }~~
+NB. For functions/advs that a monadic verb (\ ;.), Adverb that will convert a dyadic call into x&u : monad that the further modifier right expects.
+NB. if a natural monad u is passed (instead of being called dyadically) then that u is returned.
+dasM_z_ =:  ([. : (2 : 'x&u y')) a:
+NB. x is optional keys (tosym format). y boxed values .
+NB.ra =:   (''"_`('keys:' kv <@,@G0)@.iskv  kvadd1^:(0 < #@[) (('data:';'lengths:') kv ,@:(#&>) ,&<~ ;)) :: ((0: assertC 'values must be homogeneous')@]`G1@.iskv)
+ramonad =: (('data:';'lengths:') kv ,@:(#&>) ,&<~ ;) :: (0: assertC 'values must be homogeneous')(@]) 
+NB. ra =:   ramonad : (tosym@[ (('keys:' (kv <) [) kvadd1 ])   ramonad@])
+ra =:   ramonad : (tosym@[ (('keys:' (kv <) [) kvadd1  (#@[ = 'lengths:' #@kvget ]) assertC 'keys and values must have same item count')   ramonad@])
+
+
+NB. y is kv that holds ra.
+rabuildidx1 =: (] kvset~ 'indexes:' (kv <) 'lengths:' (0 , }:)@:(+/\)@:kvget ])
+rabuildidx  =: rabuildidx1^:(0 = 'indexes:' #@kvget ])(@])
+rabuildcuts =: (] kvset 'cutpoints:' (kv <) ] 1:`]`('data:' (0 #~ #)@kvget [)} 'indexes:' kvget ])@rabuildidx
+rachecknulls =:] kvset~ 'includesnulls:' (kv <) 0 e. 'lengths:' kvget ]  NB. if lengths include 0, then there are nulls.
+NB.rakillnulls1 =: ] kvset~ ('lengths:';'indexes:') kv&>/@:(] ,&<~ [ {.~ #@]) 0 <"1@:|:@:(|:@] #~ (~: {.)) 'lengths: indexes:' tableize@kvget ]
+rakillnulls1 =: (0 ~: 'lengths:' kvget ]) ([ <@# forkeyn 'keys:' [ <@# forkeyn 'indexes:' <@# forkey 'lengths:') ]
+rakillnulls2 =: (('includesnulls:' kv < 0) kvset rakillnulls1)^:(1 = 'includesnulls:' +/@kvget ])
+rakillnulls =: rakillnulls2@:rachecknulls  NB.bypasses/ignores "cached" null presence.
+radisallownulls =: ('disallownulls:' kv < 1) kvset rakillnulls2  NB. flag to prevent future nulls.
+
+NB. appends ra x to ra y. keys from x only included if y has keys.
+raadd1 =: ('keys:' kvget [ ) (([ (0 < #@]) assertC 'keys should exist in x' [) <@,~ ]) forkeyn 'keys:' ('lengths:' kvget [ ) <@,~ forkey 'lengths:' ('data:' kvget [ ) <@,~ forkey 'data:' ]
+raadd =: [`(rakillnulls@[)@.(1 = 'disallownulls:' +/@kvget ]) raadd1 ]
+raaddn =: [ raadd radisallownulls@]  NB. ensure no nulls
+
+NB. li(length index) x is table with 2 items lenght(s) index(es).  will retrieve from flat array/str y those items in y (boxed).
+li =: <@(+ i.)~/"1&.|:@[ {L:0 ]
+li1 =: <@(+ i.)~/"1&.|:@[(;@:) { ] NB. returns flat slices (suitable for replacing data:) instead of boxed items
+rali =: li 'data:' kvget ]
+rali1 =: li1 'data:' kvget ]
+NB. get lenghts/indexes by index(es) or key(s) x from ra y
+ramakei =: ] (] (#@[ -.~ i:)~ 'keys:' kvget [)^:(65536 = 3!:0@]) tosym~ NB. tosym leaves numbers(indexes) unchanged. returns indexes from keys or indexes
+ragetli =: rabuildidx@] (] {"1 'lengths: indexes:' kvget [) ramakei 
+NB. get by index(es) or key(s) x from ra y. returns boxed list of items.
+NB. raget1 =:  ] ([ rali~ ] {"1 'lengths: indexes:' kvget rabuildidx@[) ] (] (#@[ -.~ i:)~ 'keys:' kvget [)^:(65536 = 3!:0@]) tosym~
+raget1 =: ragetli rali ]
+raget2 =: ragetli rali1 ]  NB. flat array subset of data.
+raget =: (] raget1~ 'lengths:' i.@#@kvget ]) : raget1 NB. monad gets all, can be used with prefilter of lenghts/indexes to get subset.
+
+NB.rafiltu =: 1 : 'u (( I.@[ <@raget2_ra_ ]) [ <@# forkeyn_kv_ ''keys:''   <@# forkey_kv_ ''lengths:'') rabuildidx_ra_@]'
+NB. rafiltu =: 1 : 'u ([ <@# forkeyn_kv_ ''keys:'' [ <@# forkeyn_kv_ ''indexes:''  <@# forkey_kv_ ''lengths:'' ) rabuildidx_ra_@]'
+
+NB. implement filter as raget values and possible keys, then rebuild ra.  Because lenghts/indexes need rebuild for new data anyway.
+
+rafiltu1 =: 1 : 'u ra_ra_&>/@:(I.@[ (raget_ra_ ,&<~  [ { ''keys:'' kvget_kv_ ]) ]) ]'
+rafiltu2 =: rafiltu1_ra_  kvset~ 'disallownulls:' (kv_kv_ <) 'disallownulls:'kvget_kv_ ]  NB. AV(VVV)
+rafiltu =: rafiltu1  NB.should be 2 instead of 1, if ra will be added to, and original dissalownull setting should rule. That is filter argument.  
+	NB. but filter implementation is a new ra.  filt functions in ra and kv leave original intact.  Expecting new ra to be blank of "rules" leaves caller free to add the rules they want without relying on original.  
+	NB. rafiltu2 exists and has been defined if user wants that functionality (keep disallownulls setting).  Accidentally inserting empty keys does not "fool" kv standard behaviour. (missing key = keyvalue of null as return values)
+NB.  Filter by indexes/keys.  new ra built
+rafilt =: (ramakei_ra_ 1:`[`]} 0 #~ 'lengths:' #@kvget ]) rafiltu
+NB. filter by length(s) provided.  useful maybe as prefilter to match.
+rafiltl =:  ([ e.~ 'lengths:' kvget ]) rafiltu
+NB. filter by u on cutpoints (each item apply u to return boolean value for item 1 = include in filter)
+rafiltc =:  1 : '( (''cutpoints:''  kvget_kv_ ]) u (+./@)(;. 1) ''data:'' kvget_kv_ ])' rafiltu  (@:rabuildcuts_ra_)(@rakillnulls_ra_)
