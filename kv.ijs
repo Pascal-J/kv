@@ -158,6 +158,7 @@ kvgetf =: ([ kvgetb ] kvaddm~  a: (] ,&< [ ,.@:#~ #@]) ,.@tosym@[) NB. missing k
 NB. when attempting multikey get, ensure that any possible missing keys are at end of list, or use kvfilt instead.  'key1 missing key2 missing2' as x will return 2 keys without indication of which values correspond to found keys.
 NB. filters kv y by keys in x
 kvfilt =: (] {~ L:_1 G0 (#@[ -.~ i:) ,.@tosym@[)
+kvfne =: (kvfilt~ G0 ~.@:(#~,) a: ~: G1)  NB. filter out non empty values.  except if empty value is a duplicate entry.
 NB. =========================================================
 padstrmatch =: -@#@:(';'&cut :: ])@[ (}. e. {.) (] , >@:(';'&cut :: ])@[) NB. when strings padded, this function allows matching with (unpadded x) with padded version (in y).
 NB. padstrmatch =: -@#@[ (}. e. {.) (] , >@[) NB. when strings padded, this function allows matching with (unpadded x) with padded version (in y).
@@ -315,3 +316,4 @@ NB. filter by length(s) provided.  useful maybe as prefilter to match.
 rafiltl =:  ([ e.~ 'lengths:' kvget ]) rafiltu
 NB. filter by u on cutpoints (each item apply u to return boolean value for item 1 = include in filter)
 rafiltc =:  1 : '( (''cutpoints:''  kvget_kv_ ]) u (+./@)(;. 1) ''data:'' kvget_kv_ ])' rafiltu  (@:rabuildcuts_ra_)(@rakillnulls_ra_)
+
